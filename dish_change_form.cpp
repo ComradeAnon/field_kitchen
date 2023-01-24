@@ -80,6 +80,7 @@ Dish_change_form::Dish_change_form(Order ord, QWidget *parent) :
         }
         all_ingredients_index++;
     }
+    setWindowTitle(ord.dish_name);
     change_price();
 }
 
@@ -93,10 +94,10 @@ void Dish_change_form::dish_start(){
     db.open();
     QSqlQuery query(db);
     QString request;
-    request = "SELECT ingredients.ingredient_name FROM necessary_ingredients ";
+    request = "SELECT ingredients.ingredient_name, ingredients.portion_mass, necessary_ingredients.portion_count FROM necessary_ingredients ";
     request += "JOIN ingredients ON necessary_ingredients.ingredient = ingredients.ingredient_id ";
     request += "WHERE dish = " + dish_name + " UNION ";
-    request += "SELECT ingredients.ingredient_name FROM optional_ingredients ";
+    request += "SELECT ingredients.ingredient_name, ingredients.portion_mass, optional_ingredients.portion_count FROM optional_ingredients ";
     request += "JOIN ingredients ON optional_ingredients.ingredient = ingredients.ingredient_id ";
     request += "WHERE dish = " + dish_name + ";";
     query.exec(request);
@@ -106,7 +107,8 @@ void Dish_change_form::dish_start(){
     while(query.next())
     {
         ingredients.append(new QLabel(ui->scrollAreaWidgetContents_5));
-        (*ingredients.back()).setText(query.value(0).toString());
+        int par = query.value(1).toInt() * query.value(2).toInt();
+        (*ingredients.back()).setText(QString::number(par) + " гр\t" + query.value(0).toString());
         (*ingredients.back()).setWordWrap(true);
         ingredient_lay->addWidget(ingredients.back());
     }
@@ -125,6 +127,12 @@ void Dish_change_form::dish_start(){
         (*delete_ingredients.back()).setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         optional_lay->addWidget(delete_ingredients.back());
     }
+    if (optional_lay->isEmpty())
+    {
+        QLabel *empty_option_lay = new QLabel(ui->scrollAreaWidgetContents_3);
+        empty_option_lay->setText("Все ингредиенты обязательны");
+        optional_lay->addWidget(empty_option_lay);
+    }
     query.clear();
     request = "SELECT ingredients.ingredient_name, ingredients.portion_price, max_portion FROM extra_ingredients ";
     request += "JOIN ingredients ON ingredients.ingredient_id = extra_ingredients.ingredient ";
@@ -139,6 +147,13 @@ void Dish_change_form::dish_start(){
         extra_ingredients.append(new_ingredient);
         extra_lay->addWidget(extra_ingredients.back());
         connect(new_ingredient->spinbox, SIGNAL(valueChanged(int)), this, SLOT(change_price()));
+    }
+    if (extra_lay->isEmpty())
+    {
+        QLabel *empty_extra_lay = new QLabel(ui->scrollAreaWidgetContents_4);
+        empty_extra_lay->setText("Нельзя добавить новых ингредиентов");
+        empty_extra_lay->setWordWrap(true);
+        extra_lay->addWidget(empty_extra_lay);
     }
     extra_lay->setAlignment(Qt::AlignTop);
     db.close();
