@@ -263,7 +263,7 @@ void OrderWindow::cart_update(Order const& new_order) {
 
 void OrderWindow::del_order_cart() {
     QPushButton* button = (QPushButton*)sender();
-    cart.remove(button->objectName().toInt());
+    cart.erase(cart.cbegin() + button->objectName().toInt());
     cart_show();
 }
 
